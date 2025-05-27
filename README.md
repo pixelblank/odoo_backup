@@ -2,7 +2,7 @@
 
 Ce module Odoo permet de configurer et d'automatiser la sauvegarde de vos bases de données Odoo, de les stocker localement et de les exporter optionnellement vers des serveurs distants (SFTP, FTP, Dropbox).
 
-**Version:** 0.1
+**Version:** 1.6
 **Auteur:** Pixelblank
 **Licence:** LGPL-3
 
