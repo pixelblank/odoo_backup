@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Form View for server.backup.history -->
+        <record id="backup_history_form_view" model="ir.ui.view">
+            <field name="name">server.backup.history.form</field>
+            <field name="model">server.backup.history</field>
+            <field name="arch" type="xml">
+                <form string="Détail de la Sauvegarde">
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="name" readonly="1"/>
+                                <field name="config_id" readonly="1"/>
+                                <field name="db_name" readonly="1"/>
+                                <field name="create_date" readonly="1" string="Date de Sauvegarde Locale"/>
+                            </group>
+                            <group>
+                                <field name="state" readonly="1"/>
+                                <field name="file_path" readonly="1"/>
+                                <field name="file_size_human" readonly="1"/>
+                            </group>
+                        </group>
+                        <group string="Statut de l'Exportation Distante"
+                               attrs="{'invisible': [('export_status', '=', 'not_applicable')]}">
+                            <group>
+                                <field name="export_status" readonly="1"/>
+                                <field name="export_type" readonly="1"
+                                       attrs="{'invisible': [('export_status', 'in', ['not_applicable', 'pending', 'not_attempted'])]}"/>
+                            </group>
+                            <group>
+                                <field name="export_remote_path" readonly="1"
+                                       attrs="{'invisible': [('export_status', '!=', 'success')]}"/>
+                                <field name="export_message" readonly="1"
+                                       attrs="{'invisible': [('export_status', 'in', ['not_applicable', 'pending'])]}"/>
+                            </group>
+                        </group>
+                        <group>
+                           <field name="message" readonly="1" nolabel="1" colspan="4"/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Tree View for server.backup.history -->
+        <record id="backup_history_tree_view" model="ir.ui.view">
+            <field name="name">server.backup.history.tree</field>
+            <field name="model">server.backup.history</field>
+            <field name="arch" type="xml">
+                <tree string="Historique des Sauvegardes" decoration-success="state=='done' and (export_status=='success' or export_status=='not_applicable')"
+                      decoration-warning="state=='done' and export_status in ['pending', 'in_progress', 'failed']"
+                      decoration-danger="state=='failed'"
+                      decoration-muted="state=='deleted'">
+                    <field name="name"/>
+                    <field name="create_date" string="Date Sauvegarde"/>
+                    <field name="config_id"/>
+                    <field name="state"/>
+                    <field name="file_size_human"/>
+                    <field name="export_status" optional="show"
+                           attrs="{'invisible': [('export_status', '=', 'not_applicable')]}"/>
+                    <field name="export_type" optional="hide"
+                           attrs="{'invisible': [('export_status', 'in', ['not_applicable', 'pending', 'not_attempted'])]}"/>
+                    <!-- Bouton de téléchargement (nécessite un controller) -->
+                    <!-- <button name="action_download_backup" type="object" icon="fa-download" string="Télécharger"/> -->
+                </tree>
+            </field>
+        </record>
+
+        <!-- Search View for server.backup.history -->
+        <record id="backup_history_search_view" model="ir.ui.view">
+            <field name="name">server.backup.history.search</field>
+            <field name="model">server.backup.history</field>
+            <field name="arch" type="xml">
+                <search string="Rechercher dans l'Historique">
+                    <field name="name"/>
+                    <field name="config_id"/>
+                    <field name="db_name"/>
+                    <filter string="Réussies Localement" name="filter_done" domain="[('state', '=', 'done')]"/>
+                    <filter string="Échouées Localement" name="filter_failed" domain="[('state', '=', 'failed')]"/>
+                    <filter string="Export Réussi" name="filter_export_success" domain="[('export_status', '=', 'success')]"/>
+                    <filter string="Export Échoué" name="filter_export_failed" domain="[('export_status', '=', 'failed')]"/>
+                    <separator/>
+                    <filter string="Aujourd'hui" name="filter_today"
+                            domain="[('create_date', '&gt;=', context_today().strftime('%Y-%m-%d 00:00:00')), ('create_date', '&lt;=', context_today().strftime('%Y-%m-%d 23:59:59'))]"/>
+                    <filter string="Cette Semaine" name="filter_this_week"
+                            domain="[('create_date', '&gt;=', (context_today() - datetime.timedelta(days=context_today().weekday())).strftime('%Y-%m-%d 00:00:00'))]"/>
+                    <group expand="0" string="Grouper par">
+                        <filter string="Configuration" name="group_by_config" context="{'group_by': 'config_id'}"/>
+                        <filter string="État Local" name="group_by_state" context="{'group_by': 'state'}"/>
+                        <filter string="État Export" name="group_by_export_status" context="{'group_by': 'export_status'}"/>
+                        <filter string="Date de Sauvegarde" name="group_by_create_date" context="{'group_by': 'create_date:day'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <!-- Action Window for server.backup.history -->
+        <record id="action_backup_history" model="ir.actions.act_window">
+            <field name="name">Historique des Sauvegardes</field>
+            <field name="res_model">server.backup.history</field>
+            <field name="view_mode">tree,form</field>
+            <field name="search_view_id" ref="backup_history_search_view"/>
+            <field name="context">{'search_default_group_by_config': 1, 'search_default_group_by_create_date': 1}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Aucun historique de sauvegarde pour le moment.
+                </p><p>
+                    Configurez et lancez des sauvegardes pour voir leur historique ici.
+                </p>
+            </field>
+        </record>
+
+        <!-- Menu Item pour l'historique -->
+        <menuitem id="menu_backup_history_item"
+            name="Historique"
+            parent="server_backup.menu_backup_root"
+            action="action_backup_history"
+            sequence="20"/>
+
+    </data>
+</odoo>

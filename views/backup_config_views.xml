@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <!-- Form View for server.backup.config -->
+        <record id="backup_config_form_view" model="ir.ui.view">
+            <field name="name">server.backup.config.form</field>
+            <field name="model">server.backup.config</field>
+            <field name="arch" type="xml">
+                <form string="Configuration de Sauvegarde">
+                    <header>
+                        <button name="action_backup_now" type="object" string="Sauvegarder maintenant" class="oe_highlight" confirm="Êtes-vous sûr de vouloir lancer une sauvegarde manuelle maintenant ?"/>
+                        <button name="action_test_sftp_connection" type="object" string="Tester Connexion SFTP" attrs="{'invisible': ['|', ('export_enabled', '=', False), ('export_type', '!=', 'sftp')]}"/>
+                        <!-- NOUVEAU BOUTON DE TEST FTP -->
+                        <button name="action_test_ftp_connection" type="object" string="Tester Connexion FTP" attrs="{'invisible': ['|', ('export_enabled', '=', False), ('export_type', '!=', 'ftp')]}"/>
+                        <button name="action_test_dropbox_connection" type="object" string="Tester Connexion Dropbox" attrs="{'invisible': ['|', ('export_enabled', '=', False), ('export_type', '!=', 'dropbox')]}"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_title">
+                            <label for="name" class="oe_edit_only"/>
+                            <h1><field name="name" placeholder="Ex: Sauvegarde quotidienne Production"/></h1>
+                        </div>
+                        <group>
+                            <group>
+                                <field name="active"/>
+                            </group>
+                        </group>
+
+                        <notebook>
+                            <page string="Paramètres Généraux" name="general_settings">
+                                <group>
+                                    <group string="Paramètres de Sauvegarde">
+                                        <field name="backup_dir" placeholder="/var/lib/odoo/backups"/>
+                                        <field name="backup_format"/>
+                                    </group>
+                                    <group string="Paramètres de Rétention">
+                                        <field name="days_to_keep"/>
+                                        <field name="max_backup_count"/>
+                                    </group>
+                                </group>
+                            </page>
+                            <page string="Planification" name="scheduling">
+                                <group>
+                                     <group>
+                                        <field name="auto_backup"/>
+                                        <field name="backup_interval" attrs="{'invisible': [('auto_backup', '=', False)], 'required': [('auto_backup', '=', True)]}"/>
+                                        <field name="backup_interval_number" attrs="{'invisible': [('auto_backup', '=', False)], 'required': [('auto_backup', '=', True)]}"/>
+                                    </group>
+                                    <group string="Informations de Planification (calculé)">
+                                        <field name="next_backup" readonly="1" force_save="1"/>
+                                    </group>
+                                </group>
+                            </page>
+                            <page string="Export Distant" name="remote_export_settings">
+                                <group>
+                                    <field name="export_enabled"/>
+                                </group>
+                                <group attrs="{'invisible': [('export_enabled', '=', False)]}">
+                                    <group>
+                                        <field name="export_type"/>
+                                    </group>
+                                </group>
+
+                                <!-- Champs SFTP -->
+                                <div attrs="{'invisible': ['|', ('export_enabled', '=', False), ('export_type', '!=', 'sftp')]}">
+                                    <group string="Paramètres SFTP">
+                                        <!-- ... (contenu SFTP existant) ... -->
+                                        <group>
+                                            <field name="sftp_host" attrs="{'required': [('export_enabled', '=', True), ('export_type', '=', 'sftp')]}"/>
+                                            <field name="sftp_port" attrs="{'required': [('export_enabled', '=', True), ('export_type', '=', 'sftp')]}"/>
+                                            <field name="sftp_user" attrs="{'required': [('export_enabled', '=', True), ('export_type', '=', 'sftp')]}"/>
+                                            <field name="sftp_remote_dir" placeholder="/backups/" attrs="{'required': [('export_enabled', '=', True), ('export_type', '=', 'sftp')]}"/>
+                                        </group>
+                                        <group string="Authentification SFTP">
+                                            <field name="sftp_password" password="True"/>
+                                            <label for="sftp_private_key"/>
+                                            <div class="o_row">
+                                                <field name="sftp_private_key" placeholder="-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"/>
+                                            </div>
+                                            <field name="sftp_connection_status" readonly="1"/>
+                                            <field name="sftp_last_test_message" readonly="1"
+                                                   attrs="{'invisible': [('sftp_connection_status', '=', 'not_tested')]}"/>
+                                        </group>
+                                    </group>
+                                    <p class="text-muted">
+                                        Utilisez un mot de passe OU une clé privée SSH pour l'authentification SFTP.
+                                        Si les deux sont fournis, la clé privée sera prioritaire.
+                                    </p>
+                                </div>
+
+                                <!-- CHAMPS FTP -->
+                                <div attrs="{'invisible': ['|', ('export_enabled', '=', False), ('export_type', '!=', 'ftp')]}">
+                                    <group string="Paramètres FTP">
+                                        <group>
+                                            <field name="ftp_host" attrs="{'required': [('export_enabled', '=', True), ('export_type', '=', 'ftp')]}"/>
+                                            <field name="ftp_port" attrs="{'required': [('export_enabled', '=', True), ('export_type', '=', 'ftp')]}"/>
+                                            <field name="ftp_user" attrs="{'required': [('export_enabled', '=', True), ('export_type', '=', 'ftp')]}"/>
+                                            <field name="ftp_password" password="True" attrs="{'required': [('export_enabled', '=', True), ('export_type', '=', 'ftp'), ('ftp_user', '!=', 'anonymous')]}"/>
+                                        </group>
+                                        <group>
+                                            <field name="ftp_remote_dir" placeholder="/backups/" attrs="{'required': [('export_enabled', '=', True), ('export_type', '=', 'ftp')]}"/>
+                                            <field name="ftp_use_passive_mode"/>
+                                            <field name="ftp_require_tls"/> <!-- NOUVEAU CHAMP ICI -->
+                                            <field name="ftp_connection_status" readonly="1"/>
+                                            <field name="ftp_last_test_message" readonly="1"
+                                                   attrs="{'invisible': [('ftp_connection_status', '=', 'not_tested')]}"/>
+                                        </group>
+                                    </group>
+                                    <p class="text-muted">
+                                        Le mode passif est généralement recommandé. Si votre serveur exige FTPS/FTPES (TLS),
+                                        cochez "Forcer TLS" ou le système tentera de l'activer automatiquement si le serveur le demande.
+                                    </p>
+                                </div>
+                                <div attrs="{'invisible': ['|', ('export_enabled', '=', False), ('export_type', '!=', 'dropbox')]}">
+                                    <group string="Paramètres Dropbox">
+                                        <group>
+                                            <field name="dropbox_app_key"
+                                                   attrs="{'required': [('export_enabled', '=', True), ('export_type', '=', 'dropbox')]}"/>
+                                            <field name="dropbox_app_secret" password="True"
+                                                   attrs="{'required': [('export_enabled', '=', True), ('export_type', '=', 'dropbox')]}"/>
+                                            <field name="dropbox_refresh_token" password="True"
+                                                   attrs="{'required': [('export_enabled', '=', True), ('export_type', '=', 'dropbox')]}"/>
+                                        </group>
+                                        <group>
+                                            <field name="dropbox_remote_folder" placeholder="/OdooBackups/"
+                                                   attrs="{'required': [('export_enabled', '=', True), ('export_type', '=', 'dropbox')]}"/>
+                                            <field name="dropbox_connection_status" readonly="1"/>
+                                            <field name="dropbox_last_test_message" readonly="1"
+                                                   attrs="{'invisible': [('dropbox_connection_status', '=', 'not_tested')]}"/>
+                                        </group>
+                                    </group>
+                                    <p class="text-muted">
+                                        Obtenez l'App Key, l'App Secret depuis la console développeur Dropbox.
+                                        Le Refresh Token est obtenu via un script d'autorisation OAuth2 unique.
+                                    </p>
+                                </div>
+                            </page>
+                            <page string="Statistiques" name="statistics">
+                                 <group>
+                                    <field name="last_backup" readonly="1" force_save="1"/>
+                                    <field name="backup_count" readonly="1" force_save="1"/>
+                                </group>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Tree View for server.backup.config -->
+        <record id="backup_config_tree_view" model="ir.ui.view">
+            <field name="name">server.backup.config.tree</field>
+            <field name="model">server.backup.config</field>
+            <field name="arch" type="xml">
+                <tree string="Configurations de Sauvegarde">
+                    <field name="name"/>
+                    <field name="active" widget="boolean_toggle"/>
+                    <field name="backup_format"/>
+                    <field name="auto_backup"/>
+                    <field name="next_backup" optional="show"/>
+                    <field name="last_backup" optional="show"/>
+                    <field name="backup_count" optional="hide"/>
+                </tree>
+            </field>
+        </record>
+
+        <!-- Search View for server.backup.config -->
+        <record id="backup_config_search_view" model="ir.ui.view">
+            <field name="name">server.backup.config.search</field>
+            <field name="model">server.backup.config</field>
+            <field name="arch" type="xml">
+                <search string="Rechercher Configurations">
+                    <field name="name"/>
+                    <field name="backup_dir"/>
+                    <filter string="Actif" name="active" domain="[('active', '=', True)]"/>
+                    <filter string="Inactif" name="inactive" domain="[('active', '=', False)]"/>
+                    <filter string="Sauvegarde Automatique" name="auto_backup" domain="[('auto_backup', '=', True)]"/>
+                    <group expand="0" string="Grouper par">
+                        <filter string="Format" name="group_by_format" context="{'group_by': 'backup_format'}"/>
+                        <filter string="Actif" name="group_by_active" context="{'group_by': 'active'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <!-- Action Window for server.backup.config -->
+        <record id="action_backup_config" model="ir.actions.act_window">
+            <field name="name">Configurations de Sauvegarde</field>
+            <field name="res_model">server.backup.config</field>
+            <field name="view_mode">tree,form</field>
+            <field name="search_view_id" ref="backup_config_search_view"/>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Créez votre première configuration de sauvegarde !
+                </p><p>
+                    Définissez comment et quand vos bases de données Odoo doivent être sauvegardées.
+                </p>
+            </field>
+        </record>
+
+        <!-- Menu Items -->
+        <menuitem id="menu_backup_root"
+            name="Sauvegardes Serveur"
+            sequence="50"
+            web_icon="server_backup,static/description/icon.png"/> <!-- Assurez-vous que l'icône existe -->
+
+        <menuitem id="menu_backup_config"
+            name="Configurations"
+            parent="menu_backup_root"
+            action="action_backup_config"
+            sequence="10"/>
+
+        <!-- Vous ajouterez ici le menu pour l'historique plus tard -->
+        <!--
+        <menuitem id="menu_backup_history"
+            name="Historique"
+            parent="menu_backup_root"
+            action="action_backup_history" <!- Action à créer pour l'historique ->
+            sequence="20"/>
+        -->
+
+    </data>
+</odoo>

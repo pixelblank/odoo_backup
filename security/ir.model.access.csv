@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_server_backup_config_admin,server.backup.config admin access,model_server_backup_config,base.group_system,1,1,1,1
+access_server_backup_history_admin,server.backup.history admin access,model_server_backup_history,base.group_system,1,1,1,1
